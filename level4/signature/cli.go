@@ -114,7 +114,6 @@ func (cli CLI) createWallet() {
 func (cli CLI) createBlockchain(address string) {
 	bc := CreateBlockchain(address)
 	defer bc.db.Close()
-	bc.getBalance(address)
 }
 
 func (cli CLI) send(to string, amount int) {

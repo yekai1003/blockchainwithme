@@ -140,7 +140,7 @@ func (bc *Blockchain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
 
 	for {
 		block, next := bci.PreBlock()
-
+		//fmt.Printf("%+v\n", block)
 		for _, tx := range block.Transactions {
 			txID := hex.EncodeToString(tx.ID)
 
@@ -161,12 +161,14 @@ func (bc *Blockchain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
 			}
 			//用来维护spentTXOs，已经被引用过了，代表被使用
 			if tx.IsCoinbase() == false {
+				//fmt.Println("Find it")
 				for _, in := range tx.Vin {
 					if in.UsesKey(pubKeyHash) {
 						inTxID := hex.EncodeToString(in.Txid)
 						spentTXOs[inTxID] = append(spentTXOs[inTxID], in.VoutIdx)
 					}
 				}
+				//fmt.Printf("%+v\n", spentTXOs)
 			}
 		}
 
@@ -182,8 +184,12 @@ func (bc *Blockchain) FindUTXO(pubKeyHash []byte) []TXOutput {
 	var UTXOs []TXOutput
 	//先找所有交易
 	unspentTransactions := bc.FindUnspentTransactions(pubKeyHash)
-
+	//fmt.Println("FindUTXO: ", len(unspentTransactions), unspentTransactions)
 	for _, tx := range unspentTransactions {
+		//fmt.Printf("%x\n", tx.ID)
+		// for _, in := range tx.Vin {
+		// 	fmt.Printf("%x, %d\n", in.Txid, in.VoutIdx)
+		// }
 		for _, out := range tx.Vout {
 			//可解锁代表是用户的资产
 			if out.IsLockedWithKey(pubKeyHash) {
@@ -228,7 +234,7 @@ func (bc *Blockchain) getBalance(address string) {
 	pubKeyHash := Base58Decode([]byte(address))
 	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
 	UTXOs := bc.FindUTXO(pubKeyHash)
-	fmt.Println("UTXOs.size = ", len(UTXOs))
+	//fmt.Println("getBalance UTXOs = ", len(UTXOs), UTXOs)
 	for _, out := range UTXOs {
 		balance += out.Value
 	}
@@ -241,8 +247,8 @@ func (bc *Blockchain) send(from, to string, amount int, data string, wallet *Wal
 	//创建普通交易
 	tx := NewUTXOTransaction(from, to, amount, bc, wallet)
 	//创建coinbase交易
-	cbtx := NewCoinbaseTX(from, "coinbase subsidy")
-	bc.MinedBlock([]*Transaction{tx, cbtx}, data)
+	//cbtx := NewCoinbaseTX(from, "coinbase subsidy")
+	bc.MinedBlock([]*Transaction{tx}, data)
 
 	fmt.Println("Success!")
 }
@@ -294,7 +300,7 @@ func NewBlockchain() *Blockchain {
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
-		tip = b.Get([]byte("l"))
+		tip = b.Get([]byte("last"))
 
 		return nil
 	})

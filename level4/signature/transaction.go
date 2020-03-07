@@ -68,7 +68,7 @@ func NewUTXOTransaction(from, to string, amount int, bc *Blockchain, wallet *Wal
 		txID, _ := hex.DecodeString(txid)
 
 		for _, out := range outs {
-			input := TXInput{txID, out, nil, []byte(from)}
+			input := TXInput{txID, out, nil, wallet.PublicKey}
 			inputs = append(inputs, input)
 		}
 	}

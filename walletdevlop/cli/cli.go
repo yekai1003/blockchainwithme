@@ -7,12 +7,15 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"strings"
 	"walletdevlop/sol"
 	"walletdevlop/wallet"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
@@ -35,6 +38,7 @@ func (c CmdClient) Help() {
 	fmt.Println("./walletdevlop balance -from FROM  --for get balance")
 	fmt.Println("./walletdevlop sendtoken -from FROM -toaddr TOADDR -value VALUE --for  sendtoken")
 	fmt.Println("./walletdevlop tokenbalance -from FROM --for get tokenbalance")
+	fmt.Println("./walletdevlop detail -who WHO --for get tokendetail")
 
 }
 
@@ -49,6 +53,7 @@ func (c CmdClient) Run() {
 	balance_cmd := flag.NewFlagSet("balance", flag.ExitOnError)
 	sendtoken_cmd := flag.NewFlagSet("sendtoken", flag.ExitOnError)
 	tokenbalance_cmd := flag.NewFlagSet("tokenbalance", flag.ExitOnError)
+	detail_cmd := flag.NewFlagSet("detail", flag.ExitOnError)
 	//2. 立flag参数
 	cw_cmd_pass := cw_cmd.String("pass", "", "PASSWORD")
 	transfer_cmd_from := transfer_cmd.String("from", "", "FROM")
@@ -62,6 +67,9 @@ func (c CmdClient) Run() {
 	sendtoken_cmd_value := sendtoken_cmd.Int64("value", 0, "VALUE")
 	//tokenbalance
 	tokenbalance_cmd_from := tokenbalance_cmd.String("from", "", "FROM")
+	//tokendetail
+	detail_cmd_who := detail_cmd.String("who", "", "WHO")
+
 	//3. 解析命令行参数
 	switch os.Args[1] {
 	case "createwallet":
@@ -94,6 +102,12 @@ func (c CmdClient) Run() {
 			fmt.Println("Failed to Parse tokenbalance_cmd", err)
 			return
 		}
+	case "detail":
+		err := detail_cmd.Parse(os.Args[2:])
+		if err != nil {
+			fmt.Println("Failed to Parse detail_cmd", err)
+			return
+		}
 	}
 
 	//4. 确认flag参数出现
@@ -118,6 +132,10 @@ func (c CmdClient) Run() {
 	//处理tokenbalance
 	if tokenbalance_cmd.Parsed() {
 		c.tokenbalance(*tokenbalance_cmd_from)
+	}
+	//处理detail
+	if detail_cmd.Parsed() {
+		c.tokendetail(*detail_cmd_who)
 	}
 }
 
@@ -186,7 +204,7 @@ func (c CmdClient) balance(from string) (int64, error) {
 
 }
 
-const TokenContractAddr = "0x4b6388442c218751604CC3aec7512efE850C7D15"
+const TokenContractAddr = "0x7445696aC95D1CeF96795D83d8F34157fe8D7628"
 
 func (c CmdClient) sendtoken(from, toaddr string, value int64) error {
 	//1. 连接到以太坊
@@ -237,4 +255,51 @@ func (c CmdClient) tokenbalance(from string) (int64, error) {
 	}
 	fmt.Printf("%s's token balance is: %d\n", from, value.Int64())
 	return value.Int64(), err
+}
+
+func (c CmdClient) tokendetail(who string) error {
+	// 1. 连接到以太坊
+	cli, err := ethclient.Dial(c.network)
+	if err != nil {
+		log.Panic("Failed to ethclient.Dial  ", err)
+	}
+	defer cli.Close()
+	// 2. 先设置过滤条件，设为空
+	query := ethereum.FilterQuery{
+		Addresses: []common.Address{},
+		Topics:    [][]common.Hash{{}},
+	}
+	// 3. 合约地址处理
+	cAddress := common.HexToAddress(TokenContractAddr)
+	topicHash := crypto.Keccak256Hash([]byte("Transfer(address,address,uint256)"))
+
+	// 4. 查询全部日志
+	logs, err := cli.FilterLogs(context.Background(), query)
+	if err != nil {
+		log.Panic("failed to FilterLogs", err)
+	}
+
+	// 5. 过滤日志
+	for _, v := range logs {
+		if cAddress == v.Address {
+			if len(v.Topics) == 3 {
+				if v.Topics[0] == topicHash {
+					fromF := v.Topics[1].Bytes()[len(v.Topics[1].Bytes())-20:]
+					to := v.Topics[2].Bytes()[len(v.Topics[2].Bytes())-20:]
+					val := big.NewInt(0)
+					val.SetBytes(v.Data)
+					//fmt.Printf("from : 0x%x, to : 0x%x, value : -%d, BlockNumber : %d\n", fromF, to, val.Int64(), v.BlockNumber)
+					if strings.ToUpper(fmt.Sprintf("0x%x", fromF)) == strings.ToUpper(who) {
+						fmt.Printf(" from : 0x%x\n to : 0x%x\n value : -%d\n BlockNumber : %d\n",
+							fromF, to, val.Int64(), v.BlockNumber)
+					}
+					if strings.ToUpper(fmt.Sprintf("0x%x", to)) == strings.ToUpper(who) {
+						fmt.Printf("from : 0x%x\n to : 0x%x\n value : +%d\n BlockNumber : %d\n",
+							fromF, to, val.Int64(), v.BlockNumber)
+					}
+				}
+			}
+		}
+	}
+	return nil
 }

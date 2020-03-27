@@ -9,7 +9,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil/hdkeychain"
 
-	"walletdevlop/hdkeystore"
+	"github.com/yekai1003/blockchainwithme/walletdevlop/hdkeystore"
 
 	"github.com/howeyc/gopass"
 
@@ -140,4 +140,15 @@ func LoadWallet(filename, datadir string) (*HDWallet, error) {
 func (w HDWallet) StoreKey(pass string) error {
 	filename := w.HdKeyStore.JoinPath(w.Address.Hex())
 	return w.HdKeyStore.StoreKey(filename, &w.HdKeyStore.Key, pass)
+}
+
+func LoadWalletByPass(filename, datadir, pass string) (*HDWallet, error) {
+	hdks := hdkeystore.NewHDkeyStoreNoKey(datadir)
+	//filename也是账户地址
+	fromaddr := common.HexToAddress(filename)
+	_, err := hdks.GetKey(fromaddr, hdks.JoinPath(filename), pass)
+	if err != nil {
+		log.Panic("Failed to GetKey ", err)
+	}
+	return &HDWallet{fromaddr, hdks}, nil
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"walletdevlop/cli"
+	"github.com/yekai1003/blockchainwithme/walletdevlop/cli"
 )
 
 // func main1() {

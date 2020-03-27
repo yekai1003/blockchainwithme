@@ -8,8 +8,9 @@ import (
 	"math/big"
 	"os"
 	"strings"
-	"walletdevlop/sol"
-	"walletdevlop/wallet"
+
+	"github.com/yekai1003/blockchainwithme/walletdevlop/sol"
+	"github.com/yekai1003/blockchainwithme/walletdevlop/wallet"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"

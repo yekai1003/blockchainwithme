@@ -294,7 +294,7 @@ func NewBlockchain() *Blockchain {
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
-		tip = b.Get([]byte("l"))
+		tip = b.Get([]byte("last"))
 
 		return nil
 	})

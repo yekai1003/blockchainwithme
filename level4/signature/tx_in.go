@@ -1,6 +1,8 @@
 package main
 
-import "bytes"
+import (
+	"bytes"
+)
 
 // 交易输入结构
 type TXInput struct {
@@ -12,7 +14,8 @@ type TXInput struct {
 
 // UsesKey checks whether the address initiated the transaction
 func (in *TXInput) UsesKey(pubKeyHash []byte) bool {
-	lockingHash := HashPubKey(in.PubKey)
 
+	lockingHash := HashPubKey(in.PubKey)
+	//fmt.Printf("UsesKey:%x,\n%x\n", pubKeyHash, lockingHash)
 	return bytes.Compare(lockingHash, pubKeyHash) == 0
 }

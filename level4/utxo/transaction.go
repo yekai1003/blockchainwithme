@@ -9,7 +9,7 @@ import (
 	"log"
 )
 
-const subsidy = 10
+const subsidy = 50
 
 // 交易输入结构
 type TXInput struct {

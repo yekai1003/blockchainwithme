@@ -68,7 +68,7 @@ func NewUTXOTransaction(from, to string, amount int, bc *Blockchain, wallet *Wal
 		txID, _ := hex.DecodeString(txid)
 
 		for _, out := range outs {
-			input := TXInput{txID, out, nil, []byte(from)}
+			input := TXInput{txID, out, nil, wallet.PublicKey}
 			inputs = append(inputs, input)
 		}
 	}
@@ -79,6 +79,10 @@ func NewUTXOTransaction(from, to string, amount int, bc *Blockchain, wallet *Wal
 	if acc > amount {
 		outputs = append(outputs, *NewTXOutput(acc-amount, from)) // a change
 	}
+
+	// for _, v := range outputs {
+	// 	fmt.Printf("NewUTXOTransaction:%x, %d\n", v.PubKeyHash, v.Value)
+	// }
 
 	//5. 交易生成
 	tx := Transaction{nil, inputs, outputs}

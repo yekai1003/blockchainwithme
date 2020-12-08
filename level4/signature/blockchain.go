@@ -13,7 +13,7 @@ import (
 )
 
 //db文件名
-const dbFile = "blockchain.db"
+const dbFile = "signature.db"
 
 //数据库bucket名
 const blocksBucket = "blocks"
@@ -137,15 +137,16 @@ func (bc *Blockchain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
 	//已经花出的UTXO，构建tx->VOutIdx的map
 	spentTXOs := make(map[string][]int)
 	bci := bc.Iterator()
-
+	//fmt.Printf("FindUnspentTransactions begin:%x\n", pubKeyHash)
 	for {
 		block, next := bci.PreBlock()
-
+		//fmt.Printf("%+v\n", block)
 		for _, tx := range block.Transactions {
 			txID := hex.EncodeToString(tx.ID)
 
 		Outputs:
 			for outIdx, out := range tx.Vout {
+				//fmt.Printf("out:%x\n", out.PubKeyHash)
 				// 如果已经被花出了，直接跳过此交易
 				if spentTXOs[txID] != nil {
 					for _, spentOut := range spentTXOs[txID] {
@@ -154,6 +155,7 @@ func (bc *Blockchain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
 						}
 					}
 				}
+
 				//可以被address解锁，就代表属于address的utxo在此交易中
 				if out.IsLockedWithKey(pubKeyHash) {
 					unspentTXs = append(unspentTXs, *tx)
@@ -161,12 +163,14 @@ func (bc *Blockchain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
 			}
 			//用来维护spentTXOs，已经被引用过了，代表被使用
 			if tx.IsCoinbase() == false {
+				//fmt.Println("Find it")
 				for _, in := range tx.Vin {
 					if in.UsesKey(pubKeyHash) {
 						inTxID := hex.EncodeToString(in.Txid)
 						spentTXOs[inTxID] = append(spentTXOs[inTxID], in.VoutIdx)
 					}
 				}
+				//fmt.Printf("%+v\n", spentTXOs)
 			}
 		}
 
@@ -182,8 +186,12 @@ func (bc *Blockchain) FindUTXO(pubKeyHash []byte) []TXOutput {
 	var UTXOs []TXOutput
 	//先找所有交易
 	unspentTransactions := bc.FindUnspentTransactions(pubKeyHash)
-
+	//fmt.Println("FindUTXO: ", len(unspentTransactions), unspentTransactions)
 	for _, tx := range unspentTransactions {
+		//fmt.Printf("%x\n", tx.ID)
+		// for _, in := range tx.Vin {
+		// 	fmt.Printf("%x, %d\n", in.Txid, in.VoutIdx)
+		// }
 		for _, out := range tx.Vout {
 			//可解锁代表是用户的资产
 			if out.IsLockedWithKey(pubKeyHash) {
@@ -228,7 +236,7 @@ func (bc *Blockchain) getBalance(address string) {
 	pubKeyHash := Base58Decode([]byte(address))
 	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-4]
 	UTXOs := bc.FindUTXO(pubKeyHash)
-	fmt.Println("UTXOs.size = ", len(UTXOs))
+	//fmt.Println("getBalance UTXOs = ", len(UTXOs), UTXOs)
 	for _, out := range UTXOs {
 		balance += out.Value
 	}
@@ -239,10 +247,11 @@ func (bc *Blockchain) getBalance(address string) {
 //交易发送
 func (bc *Blockchain) send(from, to string, amount int, data string, wallet *Wallet) {
 	//创建普通交易
+	fmt.Println("send:", from)
 	tx := NewUTXOTransaction(from, to, amount, bc, wallet)
 	//创建coinbase交易
-	cbtx := NewCoinbaseTX(from, "coinbase subsidy")
-	bc.MinedBlock([]*Transaction{tx, cbtx}, data)
+	//cbtx := NewCoinbaseTX(from, "coinbase subsidy")
+	bc.MinedBlock([]*Transaction{tx}, data)
 
 	fmt.Println("Success!")
 }

@@ -16,6 +16,7 @@ func main1() {
 	bc.getBalance(from)
 }
 
+//main(int agrc,char *argv[])
 func main() {
 	cli := NewCli()
 	cli.Run()

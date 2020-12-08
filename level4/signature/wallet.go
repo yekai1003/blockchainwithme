@@ -62,7 +62,7 @@ func newKeyPair() (ecdsa.PrivateKey, []byte) {
 func HashPubKey(pubKey []byte) []byte {
 	//1. 先hash一次
 	publicSHA256 := sha256.Sum256(pubKey)
-	//2. 计算ripemd160
+	//2. 计算  ripemd160
 	RIPEMD160Hasher := ripemd160.New()
 	RIPEMD160Hasher.Write(publicSHA256[:])
 

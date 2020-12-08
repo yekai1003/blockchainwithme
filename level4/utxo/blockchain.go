@@ -9,7 +9,7 @@ import (
 )
 
 //db文件名
-const dbFile = "blockchain.db"
+const dbFile = "level.db"
 
 //数据库bucket名
 const blocksBucket = "blocks"
@@ -132,7 +132,7 @@ func (i *BlockchainIterator) PreBlock() (*Block, bool) {
 //查找账户可解锁的全部交易
 func (bc *Blockchain) FindUnspentTransactions(address string) []Transaction {
 	var unspentTXs []Transaction
-	//已经花出的UTXO，构建tx->VOutIdx的map
+	//已经花出的TXO，构建tx->VOutIdx的map
 	spentTXOs := make(map[string][]int)
 	bci := bc.Iterator()
 
